@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exoplanet Sky Simulation</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+        #error-message { 
+            position: absolute; 
+            top: 10px; 
+            left: 10px; 
+            color: red; 
+            background-color: rgba(0,0,0,0.7);
+            padding: 10px;
+            display: none;
+        }
+        #debug-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            background-color: rgba(0,0,0,0.7);
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="error-message"></div>
+    <div id="debug-info"></div>
+    <script>
+        function loadScript(url) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = url;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        async function loadDependencies() {
+            console.log('loadDependencies called');
+            try {
+                await loadScript('https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js');
+                await loadScript('https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js');
+                console.log('Three.js and OrbitControls loaded successfully');
+                await loadStarData();
+            } catch (error) {
+                console.error('Error loading scripts:', error);
+                showError('Failed to load required libraries. Please try refreshing the page.');
+            }
+        }
+
+        let scene, camera, renderer, stars, controls;
+
+        function init(starData) {
+            console.log('init called with', starData.length, 'stars');            
+            scene = new THREE.Scene();
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000); // Set clear color to black
+            document.body.appendChild(renderer.domElement);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+            camera.position.set(0, 0, 50); // Move camera back further
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.minDistance = 100;
+            controls.maxDistance = 3000;
+            camera.position.z = 200;
+
+            camera.position.set(0, 0, 500); // Move camera back further
+            controls.target.set(0, 0, 0); // Set control target to center of scene
+
+      
+
+            if (typeof THREE.OrbitControls !== 'function') {
+                console.error('THREE.OrbitControls is not a constructor. Type:', typeof THREE.OrbitControls);
+                showError('Failed to initialize controls. Please try refreshing the page.');
+                return;
+            }
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // Add an ambient light
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            // Add coordinate axes for debugging
+            const axesHelper = new THREE.AxesHelper(100);
+            scene.add(axesHelper);
+
+            // Add a bright sphere at the center for reference
+            const sphereGeometry = new THREE.SphereGeometry(2, 32, 32);
+            const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+            const centerSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            scene.add(centerSphere);
+
+            addStars(starData);
+            animate();
+
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function addStars(starData) {
+    const starGeometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(starData.length * 3);
+    const colors = new Float32Array(starData.length * 3);
+    const sizes = new Float32Array(starData.length);
+
+    let minRA = Infinity, maxRA = -Infinity;
+    let minDec = Infinity, maxDec = -Infinity;
+
+    // First pass: find min and max values
+    starData.forEach(star => {
+        minRA = Math.min(minRA, star.ra);
+        maxRA = Math.max(maxRA, star.ra);
+        minDec = Math.min(minDec, star.dec);
+        maxDec = Math.max(maxDec, star.dec);
+    });
+
+    const scaleFactor = 1000; // Increased scale factor
+    const centerRA = (minRA + maxRA) / 2;
+    const centerDec = (minDec + maxDec) / 2;
+
+    starData.forEach((star, i) => {
+        // Normalize and center the positions
+        const x = ((star.ra - centerRA) / (maxRA - minRA)) * scaleFactor;
+        const y = ((star.dec - centerDec) / (maxDec - minDec)) * scaleFactor;
+        const z = (Math.random() - 0.5) * scaleFactor; // Random depth
+
+        positions[i * 3] = x;
+        positions[i * 3 + 1] = y;
+        positions[i * 3 + 2] = z;
+
+        const color = new THREE.Color().setHSL(0, 0, 0.9 + Math.random() * 0.1);
+        colors[i * 3] = color.r;
+        colors[i * 3 + 1] = color.g;
+        colors[i * 3 + 2] = color.b;
+
+        sizes[i] = Math.max(2, star.brightness ? star.brightness * 5 : 2);
+    });
+
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    starGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    starGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+    const starMaterial = new THREE.PointsMaterial({
+        size: 2,
+        vertexColors: true,
+        sizeAttenuation: true,
+        transparent: true,
+        opacity: 1,
+    });
+
+    stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+
+    console.log('Added', starData.length, 'stars to the scene');
+    console.log('RA range:', minRA, 'to', maxRA);
+    console.log('Dec range:', minDec, 'to', maxDec);
+
+    updateDebugInfo(starData.length, -scaleFactor/2, scaleFactor/2, -scaleFactor/2, scaleFactor/2, -scaleFactor/2, scaleFactor/2);
+
+    // Add debug spheres
+    const debugSpheres = [
+        { position: new THREE.Vector3(scaleFactor/2, scaleFactor/2, scaleFactor/2), color: 0xff0000 },
+        { position: new THREE.Vector3(-scaleFactor/2, -scaleFactor/2, -scaleFactor/2), color: 0x00ff00 },
+        { position: new THREE.Vector3(0, 0, 0), color: 0x0000ff }
+    ];
+
+    debugSpheres.forEach(sphere => {
+        const geometry = new THREE.SphereGeometry(10, 32, 32);
+        const material = new THREE.MeshBasicMaterial({ color: sphere.color });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.copy(sphere.position);
+        scene.add(mesh);
+    });
+}
+
+        function updateDebugInfo(starCount, minX, maxX, minY, maxY, minZ, maxZ) {
+            const debugElement = document.getElementById('debug-info');
+            debugElement.innerHTML = `
+                Stars: ${starCount}<br>
+                X: ${minX.toFixed(2)} to ${maxX.toFixed(2)}<br>
+                Y: ${minY.toFixed(2)} to ${maxY.toFixed(2)}<br>
+                Z: ${minZ.toFixed(2)} to ${maxZ.toFixed(2)}<br>
+                Camera Z: ${camera.position.z.toFixed(2)}
+            `;
+        }
+
+        function polarToCartesian(ra, dec, radius) {
+            const phi = (90 - dec) * Math.PI / 180;
+            const theta = ra * Math.PI / 180;
+            const x = radius * Math.sin(phi) * Math.cos(theta);
+            const y = radius * Math.cos(phi);
+            const z = -radius * Math.sin(phi) * Math.sin(theta);
+            return [x, y, z];
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function showError(message) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+
+        async function loadStarData() {
+            console.log('loadStarData called');
+            const urlParams = new URLSearchParams(window.location.search);
+            const ra = urlParams.get('ra');
+            const dec = urlParams.get('dec');
+            try {
+                console.log('Fetching star data for RA:', ra, 'DEC:', dec);
+                const response = await fetch(`/api/star-data?ra=${ra}&dec=${dec}`);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+                const starData = await response.json();
+                console.log('Received star data:', starData.length, 'stars');
+                if (starData.length > 0) {
+                    console.log('Sample star data:', starData.slice(0, 5));
+                }
+                if (starData.length === 0) {
+                    showError("No star data found for this location.");
+                } else {
+                    init(starData);
+                }
+            } catch (error) {
+                console.error("Error fetching star data:", error);
+                showError(`Error loading star data: ${error.message}`);
+            }
+        }
+        // loadStarData();
+        console.log('Starting initialization');
+        loadDependencies();
+    </script>
+</body>
+</html>
