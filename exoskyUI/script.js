@@ -107,6 +107,10 @@ window.onload = async function() {
     init(); // Initialize Three.js
     await fetchAllPlanets(); // Fetch all exoplanets
     document.getElementById("dropdownButton").onclick = toggleDropdown; // Toggle dropdown on button click
+
+    // Add event listener for search input
+    const searchInput = document.getElementById("dropdownButton");
+    searchInput.addEventListener("input", filterPlanets);
 };
 
 async function searchPlanet(planetName) {
@@ -127,7 +131,8 @@ async function searchPlanet(planetName) {
             document.getElementById("result").innerHTML = "No planet found!";
         } else {
             const planet = data[0];
-            openSkySimulation(planet.ra, planet.dec);
+            // edit here
+            openSkySimulation(planet.ra, planet.dec, planetName);
         }
 
         const scriptRunUrl = `http://localhost:3000/api/run-script`;
@@ -166,7 +171,6 @@ async function fetchAllPlanets() {
     try {
         const response = await fetch(apiUrl);
         const data = await response.json();
-
         const planetOptions = document.getElementById("planetOptions");
         planetOptions.innerHTML = '';
 
@@ -191,7 +195,32 @@ async function fetchAllPlanets() {
     }
 }
 
-function openSkySimulation(ra, dec) {
-    const url = `/3d-simulation?ra=${encodeURIComponent(ra)}&dec=${encodeURIComponent(dec)}`;
+function filterPlanets() {
+    const filter = document.getElementById("dropdownButton").value.toLowerCase();
+    const planetOptions = document.getElementById("planetOptions");
+    
+    // Show or hide the loading message
+    const loadingMessage = document.querySelector(".loading-message");
+    loadingMessage.style.display = filter ? "none" : "block"; // Show loading when searching
+
+    const options = planetOptions.getElementsByTagName("li");
+    for (let i = 0; i < options.length; i++) {
+        const option = options[i];
+        const planetName = option.textContent.toLowerCase();
+        option.style.display = planetName.includes(filter) ? "" : "none";
+    }
+
+    // Hide loading message once done
+    loadingMessage.style.display = "none";
+}
+
+function openSkySimulation(ra, dec, planetName) {
+    // edit here
+    const url = `/3d-simulation?ra=${encodeURIComponent(ra)}&dec=${encodeURIComponent(dec)}
+        &name=${encodeURIComponent(planetName)}`;
     window.open(url, '_blank');
+
+    setTimeout(() => {
+        document.getElementById('loading-screen').style.display = 'none';
+    }, 3000); // Hide after 3 seconds if not already hidden
 }

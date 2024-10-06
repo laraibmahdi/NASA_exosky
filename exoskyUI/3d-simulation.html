@@ -29,7 +29,12 @@
 <body>
     <div id="error-message"></div>
     <div id="debug-info"></div>
+    <div id="loading-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; z-index: 9999;">
+        Loading simulation...
+    </div>
+    <div id="hoverDisplay" style="position: absolute; top: 50px; left: 10px; color: white; background-color: rgba(0,0,0,0.7); padding: 5px; display: none;"></div>
     <script>
+
         function loadScript(url) {
             return new Promise((resolve, reject) => {
                 const script = document.createElement('script');
@@ -39,7 +44,7 @@
                 document.head.appendChild(script);
             });
         }
-
+        
         async function loadDependencies() {
             console.log('loadDependencies called');
             try {
@@ -52,13 +57,18 @@
                 showError('Failed to load required libraries. Please try refreshing the page.');
             }
         }
-
+        
         let scene, camera, renderer, stars, controls;
-
+        let planetName; // global var that stores the planet name 
+        let centerSphere; // Declare a variable for the center sphere
+        let mouse;
+        let raycaster;
+        
         function init(starData) {
+            mouse = new THREE.Vector2(); // Create a mouse vector
             console.log('init called with', starData.length, 'stars');            
             scene = new THREE.Scene();
-
+            raycaster = new THREE.Raycaster(); // Create a raycaster
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setClearColor(0x000000); // Set clear color to black
@@ -100,16 +110,58 @@
             // Add a bright sphere at the center for reference
             const sphereGeometry = new THREE.SphereGeometry(2, 32, 32);
             const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-            const centerSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            centerSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
             scene.add(centerSphere);
 
             addStars(starData);
             animate();
-
             window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('mousemove', onMouseMove, false); // Add mouse move listener
         }
 
-        function addStars(starData) {
+        function onMouseMove(event) {
+            // Calculate mouse position in normalized device coordinates
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Update the raycaster
+            raycaster.setFromCamera(mouse, camera);
+
+            // dummy large sphere for intersection
+            const interactionRadius = 10; // Increase this value for a larger interaction range
+            const largeSphereGeometry = new THREE.SphereGeometry(interactionRadius, 32, 32);
+            const largeSphereMaterial = new THREE.MeshBasicMaterial({ visible: false }); // Make it invisible
+            const largeSphere = new THREE.Mesh(largeSphereGeometry, largeSphereMaterial);
+
+            // Position the large sphere at the center of the centerSphere
+            largeSphere.position.copy(centerSphere.position);
+
+            // Calculate objects intersecting the picking ray
+            const intersects = raycaster.intersectObjects([largeSphere]);
+            if (intersects.length > 0) {
+                showPlanetName();
+            } else {
+                hidePlanetName();
+            }
+        }
+
+        function showPlanetName() {
+            const hoverDisplay = document.getElementById('hoverDisplay');
+            hoverDisplay.innerText = `Planet: ${planetName}`; // Use the stored planet name
+            hoverDisplay.style.display = 'block'; // Show the hover display
+
+            // Set position based on mouse event coordinates
+            hoverDisplay.style.left = `${event.clientX + 10}px`; // 10px offset to the right
+            hoverDisplay.style.top = `${event.clientY - hoverDisplay.offsetHeight - 10}px`; // Position above the cursor
+        }
+
+        function hidePlanetName() {
+            const hoverDisplay = document.getElementById('hoverDisplay');
+            hoverDisplay.style.display = 'none'; // Hide the hover display
+        }
+
+
+    function addStars(starData) {
     const starGeometry = new THREE.BufferGeometry();
     const positions = new Float32Array(starData.length * 3);
     const colors = new Float32Array(starData.length * 3);
@@ -228,6 +280,12 @@
             const urlParams = new URLSearchParams(window.location.search);
             const ra = urlParams.get('ra');
             const dec = urlParams.get('dec');
+            // edit here
+            planetName = urlParams.get('name'); // Store the planet name for later use
+            console.log("Selected planet name:", planetName);
+            // hide the loading screen once the star data has loaded
+            document.getElementById('loading-screen').style.display = 'none';
+
             try {
                 console.log('Fetching star data for RA:', ra, 'DEC:', dec);
                 const response = await fetch(`/api/star-data?ra=${ra}&dec=${dec}`);
