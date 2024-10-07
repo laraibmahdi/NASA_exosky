@@ -1,8 +1,7 @@
-let scene, camera, renderer, stars;
+let scene, camera, renderer, stars, starTrail;
 const starCount = 10000; // Number of stars
-let exoplanets = []; // Store all fetched exoplanets
-let currentIndex = 0;
-const loadCount = 10; // Number of exoplanets to load each time
+let starTrails = []; // Store previous positions for the trail effect
+const maxTrailLength = 10; // Number of positions in the trail
 
 function init() {
     scene = new THREE.Scene();
@@ -36,6 +35,7 @@ function addStars() {
         positions[i * 3 + 2] = (Math.random() - 0.5) * 200 - 100;
 
         sizes[i] = Math.random() * 0.5 + 0.1;
+        starTrails.push([]); // Initialize an empty array for each star's trail positions
     }
 
     starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -60,10 +60,29 @@ function addStars() {
 function animate() {
     requestAnimationFrame(animate);
 
+    // Move stars and update trail
     stars.geometry.attributes.position.array.forEach((value, index) => {
         if (index % 3 === 2) {
+            const starIndex = Math.floor(index / 3);
+            const zPos = stars.geometry.attributes.position.array[index];
+            
+            // Add the current position to the trail history
+            const currentPosition = [
+                stars.geometry.attributes.position.array[index - 2], // x
+                stars.geometry.attributes.position.array[index - 1], // y
+                stars.geometry.attributes.position.array[index]      // z
+            ];
+
+            // Keep only the last 10 positions in the trail
+            if (starTrails[starIndex].length >= maxTrailLength) {
+                starTrails[starIndex].shift();
+            }
+            starTrails[starIndex].push(currentPosition);
+
+            // Move the stars forward
             stars.geometry.attributes.position.array[index] += 0.05;
 
+            // Reset stars position once out of bounds
             if (stars.geometry.attributes.position.array[index] > 5) {
                 stars.geometry.attributes.position.array[index] = -100;
                 const cameraZ = camera.position.z;
@@ -78,8 +97,42 @@ function animate() {
         }
     });
 
+    // Render the star trails
+    renderStarTrails();
+
     stars.geometry.attributes.position.needsUpdate = true;
     renderer.render(scene, camera);
+}
+
+function renderStarTrails() {
+    // For each star's trail, render the previous positions as small fading points
+    const trailGeometry = new THREE.BufferGeometry();
+    const trailVertices = [];
+
+    starTrails.forEach(trail => {
+        trail.forEach((pos, i) => {
+            trailVertices.push(...pos);
+        });
+    });
+
+    const trailPositions = new Float32Array(trailVertices);
+    trailGeometry.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+
+    const trailMaterial = new THREE.PointsMaterial({
+        size: 0.1, // Make the trail points smaller than the stars
+        sizeAttenuation: true,
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.5, // Trail opacity (can be reduced for fading effect)
+        depthWrite: false,
+    });
+
+    if (starTrail) {
+        scene.remove(starTrail); // Remove the previous trail points
+    }
+
+    starTrail = new THREE.Points(trailGeometry, trailMaterial);
+    scene.add(starTrail);
 }
 
 function onWindowResize() {
@@ -88,135 +141,7 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-// Show or hide the dropdown menu
-function toggleDropdown() {
-    const dropdownMenu = document.getElementById("dropdownMenu");
-    dropdownMenu.classList.toggle("hidden");
-  }
-
-// Close the dropdown when clicking outside
-window.onclick = function(event) {
-    const dropdownMenu = document.getElementById("dropdownMenu");
-    if (!event.target.matches('#dropdownButton') && !dropdownMenu.contains(event.target)) {
-        dropdownMenu.classList.add("hidden");
-    }
-  };
-
-// Call the fetchAllPlanets on window load
-window.onload = async function() {
-    init(); // Initialize Three.js
-    await fetchAllPlanets(); // Fetch all exoplanets
-    document.getElementById("dropdownButton").onclick = toggleDropdown; // Toggle dropdown on button click
-
-    // Add event listener for search input
-    const searchInput = document.getElementById("dropdownButton");
-    searchInput.addEventListener("input", filterPlanets);
+// Call the init function on window load
+window.onload = function() {
+    init(); // Initialize the scene
 };
-
-async function searchPlanet(planetName) {
-    console.log("Searching for planet:", planetName);
-    const apiUrl = `http://localhost:3000/api/exoplanets?name=${planetName}`;
-
-    try {
-        const response = await fetch(apiUrl);
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log(data);
-
-        if (data.length === 0) {
-            document.getElementById("result").innerHTML = "No planet found!";
-        } else {
-            const planet = data[0];
-            // edit here
-            openSkySimulation(planet.ra, planet.dec, planetName);
-        }
-
-        const scriptRunUrl = `http://localhost:3000/api/run-script`;
-        const scriptResponse = await fetch(scriptRunUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                ra_exo: data[0].ra,
-                dec_exo: data[0].dec,
-                distance_exo: data[0].sy_dist,
-            }),
-        });
-
-        if (!scriptResponse.ok) {
-            throw new Error(`Failed to run Python script: ${scriptResponse.status}`);
-        }
-
-        const scriptOutput = await scriptResponse.text();
-        console.log("Script output:", scriptOutput);
-    } catch (error) {
-        console.error("Error fetching data:", error);
-        document.getElementById("result").innerHTML = "An error occurred: " + error.message;
-    }
-}
-
-function selectPlanet(planetName) {
-    document.getElementById("dropdownButton").textContent = planetName;
-    document.getElementById("dropdownMenu").classList.add("hidden");
-    searchPlanet(planetName); // Call the search function with the selected planet
-  }
-
-async function fetchAllPlanets() {
-    const apiUrl = "http://localhost:3000/api/all-planets";
-    try {
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-        const planetOptions = document.getElementById("planetOptions");
-        planetOptions.innerHTML = '';
-
-        if (data.length === 0) {
-            planetOptions.innerHTML = "<li class='text-gray-500'>No planets found!</li>";
-        } else {
-            data.forEach((planet) => {
-                const option = document.createElement("li");
-                option.className = "p-4 text-white cursor-pointer hover:bg-blue-500";
-                option.textContent = planet.pl_name;
-                option.onclick = () => {
-                  console.log(`Planet selected: ${planet.pl_name}`); // Log the planet name
-                  selectPlanet(planet.pl_name); // Call selectPlanet to handle selection
-              };
-                planetOptions.appendChild(option);
-            });
-        }
-    } catch (error) {
-        console.error("Error fetching planets:", error);
-        const planetOptions = document.getElementById("planetOptions");
-        planetOptions.innerHTML = "<li class='text-gray-500'>Error fetching data!</li>";
-    }
-}
-
-function filterPlanets() {
-    const filter = document.getElementById("dropdownButton").value.toLowerCase();
-    const planetOptions = document.getElementById("planetOptions");
-    
-    // Show or hide the loading message
-    const loadingMessage = document.querySelector(".loading-message");
-    loadingMessage.style.display = filter ? "none" : "block"; // Show loading when searching
-
-    const options = planetOptions.getElementsByTagName("li");
-    for (let i = 0; i < options.length; i++) {
-        const option = options[i];
-        const planetName = option.textContent.toLowerCase();
-        option.style.display = planetName.includes(filter) ? "" : "none";
-    }
-
-    // Hide loading message once done
-    loadingMessage.style.display = "none";
-}
-
-function openSkySimulation(ra, dec, planetName) {
-    // edit here
-    const url = `/3d-simulation?ra=${encodeURIComponent(ra)}&dec=${encodeURIComponent(dec)}
-        &name=${encodeURIComponent(planetName)}`;
-    window.open(url, '_blank');
-}
