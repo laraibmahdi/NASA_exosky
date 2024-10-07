@@ -62,7 +62,7 @@ function animate() {
 
     stars.geometry.attributes.position.array.forEach((value, index) => {
         if (index % 3 === 2) {
-            stars.geometry.attributes.position.array[index] += 0.05;
+            stars.geometry.attributes.position.array[index] += 0.003;
 
             if (stars.geometry.attributes.position.array[index] > 5) {
                 stars.geometry.attributes.position.array[index] = -100;
