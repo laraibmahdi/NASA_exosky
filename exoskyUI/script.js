@@ -1,5 +1,5 @@
 let scene, camera, renderer, stars;
-const starCount = 10000; // Number of stars
+const starCount = 50000; // Number of stars
 let exoplanets = []; // Store all fetched exoplanets
 let currentIndex = 0;
 const loadCount = 10; // Number of exoplanets to load each time
@@ -44,7 +44,7 @@ function addStars() {
     const starTexture = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/spark1.png');
 
     const starMaterial = new THREE.PointsMaterial({
-        size: 0.5,
+        size: 0.2,
         sizeAttenuation: true,
         map: starTexture,
         transparent: true,
