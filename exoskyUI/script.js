@@ -40,7 +40,7 @@ function addStars() {
 
     const starTexture = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/spark1.png');
     const starMaterial = new THREE.PointsMaterial({
-        size: 0.5,
+        size: 0.2,
         sizeAttenuation: true,
         map: starTexture,
         transparent: true,
