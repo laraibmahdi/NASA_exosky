@@ -1,5 +1,5 @@
 let scene, camera, renderer, stars, starTrail;
-const starCount = 5000; // Number of stars
+const starCount = 50000; // Number of stars
 let starTrails = []; // Store previous positions for the trail effect
 const maxTrailLength = 10; // Number of positions in the trail
 
@@ -74,7 +74,7 @@ function animate() {
             }
             starTrails[starIndex].push(currentPosition);
             // Move the stars forward
-            stars.geometry.attributes.position.array[index] += 0.05;
+            stars.geometry.attributes.position.array[index] += 0.09;
             // Reset stars position once out of bounds
             if (stars.geometry.attributes.position.array[index] > 5) {
                 stars.geometry.attributes.position.array[index] = -100;
