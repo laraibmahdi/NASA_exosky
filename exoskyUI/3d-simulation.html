@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.10.4/gsap.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Exoplanet Sky Simulation</title>
     <style>
         body { margin: 0; overflow: hidden; }
-        canvas { display: block; }
+        canvas { display: block;}
         #error-message { 
             position: absolute; 
             top: 10px; 
@@ -24,16 +25,47 @@
             background-color: rgba(0,0,0,0.7);
             padding: 10px;
         }
+
+        #loading-screen {
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 100%; 
+        z-index: 9999; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        overflow: hidden; /* Prevent overflow */
+        }
+
+        #loading-video {
+            position: absolute; /* Changed to absolute */
+            top: 50%; /* Center vertically */
+            left: 50%; /* Center horizontally */
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            object-fit: cover; /* Cover the area */
+            transform: translate(-50%, -50%); /* Adjust position to center */
+            z-index: -1; /* Set behind other elements */
+}
     </style>
 </head>
 <body>
+    <div id="loading-screen">
+        <video id="loading-video" src="Background.mp4" autoplay muted loop></video>
+    </div>
     <div id="error-message"></div>
     <div id="debug-info"></div>
-    <div id="loading-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; z-index: 9999;">
-        Loading simulation...
-    </div>
     <div id="hoverDisplay" style="position: absolute; top: 50px; left: 10px; color: white; background-color: rgba(0,0,0,0.7); padding: 5px; display: none;"></div>
     <script>
+        let isZoomedIn = false;
+        // let initialZoom = 500;
+        // let fullZoom = 50;
+        const zoomInLevel = 50;
+        const zoomOutLevel = 400;
+        let textureLoader;
+        let planetTexture;
 
         function loadScript(url) {
             return new Promise((resolve, reject) => {
@@ -70,21 +102,27 @@
             scene = new THREE.Scene();
             raycaster = new THREE.Raycaster(); // Create a raycaster
             renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setClearColor(0x000000); // Set clear color to black
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.gammaFactor = 2.2;
+
             document.body.appendChild(renderer.domElement);
 
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
-            camera.position.set(0, 0, 50); // Move camera back further
+            camera.position.set(0, 0, zoomOutLevel); // Move camera back further
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
+            controls.enableZoom = true;
             controls.screenSpacePanning = false;
-            controls.minDistance = 100;
-            controls.maxDistance = 3000;
-            camera.position.z = 200;
+            controls.enablePan = false;
+            controls.minDistance = zoomInLevel;
+            controls.maxDistance = zoomOutLevel;
+            // camera.position.z = 200;
 
-            camera.position.set(0, 0, 500); // Move camera back further
+            camera.position.set(0, 0, zoomOutLevel); 
             controls.target.set(0, 0, 0); // Set control target to center of scene
 
       
@@ -95,28 +133,106 @@
                 return;
             }
 
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
+            // controls = new THREE.OrbitControls(camera, renderer.domElement);
+            // controls.enableDamping = true;
+            // controls.dampingFactor = 0.05;
 
             // Add an ambient light
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
             scene.add(ambientLight);
 
-            // Add coordinate axes for debugging
-            const axesHelper = new THREE.AxesHelper(100);
-            scene.add(axesHelper);
+                // Initialize the texture loader
+            textureLoader = new THREE.TextureLoader();
 
-            // Add a bright sphere at the center for reference
-            const sphereGeometry = new THREE.SphereGeometry(2, 32, 32);
-            const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-            centerSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-            scene.add(centerSphere);
+            // Load a planet texture
+            const textures = [
+                '2k_makemake_fictional.jpg', 
+                '2k_ceres_fictional.jpg',
+                '2k_haumea_fictional.jpg',
+                '2k_eris_fictional.jpg'
+            ];
+            function getRandomTexture() {
+                // Pick a random texture from the array
+                const randomIndex = Math.floor(Math.random() * textures.length);
+                return textures[randomIndex];
+            }
 
+            planetTexture = textureLoader.load(getRandomTexture(), 
+                function(texture) {
+                    texture.minFilter = THREE.LinearMipMapLinearFilter;
+                    texture.magFilter = THREE.LinearFilter;
+                    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                    // Texture loaded successfully
+                    console.log('Planet texture loaded');
+                    createPlanet();
+                },
+                undefined,
+                function(err) {
+                    console.error('An error occurred loading the texture');
+                }
+            );
+
+            planetTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            planetTexture.encoding = THREE.sRGBEncoding;
+            // // Add coordinate axes for debugging
+            // const axesHelper = new THREE.AxesHelper(100);
+            // scene.add(axesHelper);
+
+            // // Add a bright sphere at the center for reference
+            // const sphereGeometry = new THREE.SphereGeometry(5, 128, 128);
+            // const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+            // centerSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            // scene.add(centerSphere);
+            createPlanet();
             addStars(starData);
             animate();
             window.addEventListener('resize', onWindowResize, false);
             window.addEventListener('mousemove', onMouseMove, false); // Add mouse move listener
+                  // Event listeners for resize and click
+            window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('mousemove', onMouseMove, false);
+            window.addEventListener('click', onClick, false);  // Add click listener for planet
+   
+        }
+
+        function onClick(event) {
+            // Update the mouse position in normalized device coordinates
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Cast a ray from the camera to the scene
+            raycaster.setFromCamera(mouse, camera);
+
+            // Check if the planet (centerSphere) is clicked
+            const intersects = raycaster.intersectObject(centerSphere);
+            if (intersects.length > 0) {
+                // Toggle zoom state with smooth animation using GSAP
+                if (isZoomedIn) {
+                    gsap.to(camera.position, { z: zoomOutLevel, duration: 1, ease: "power2.inOut" });
+                } else {
+                    gsap.to(camera.position, { z: zoomInLevel, duration: 1, ease: "power2.inOut" });
+                }
+                isZoomedIn = !isZoomedIn;  // Toggle the zoom state
+            }
+        }
+        
+
+        // Create a separate function to create the planet
+        function createPlanet() {
+            const sphereGeometry = new THREE.SphereGeometry(15, 512, 512);
+            const sphereMaterial = new THREE.MeshStandardMaterial({ 
+                map: planetTexture,
+                roughness: 0.5,
+                bumpMap: planetTexture,
+                bumpScale: 0.05
+            });
+            centerSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            scene.add(centerSphere);
+
+            // // Add a point light to illuminate the planet
+            // const pointLight = new THREE.PointLight(0xffffff, 1, 100);
+            // pointLight.position.set(10, 10, 10);
+            // scene.add(pointLight);
         }
 
         function onMouseMove(event) {
@@ -139,8 +255,12 @@
             // Calculate objects intersecting the picking ray
             const intersects = raycaster.intersectObjects([largeSphere]);
             if (intersects.length > 0) {
+                document.body.style.cursor = 'pointer';
+                centerSphere.material.emissive = new THREE.Color(0xaaaaaa);
                 showPlanetName();
             } else {
+                document.body.style.cursor = 'default';
+                centerSphere.material.emissive = new THREE.Color(0x000000);
                 hidePlanetName();
             }
         }
@@ -204,9 +324,13 @@
     starGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     starGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
 
+
+    const starTexture = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/spark1.png');
+
     const starMaterial = new THREE.PointsMaterial({
         size: 2,
         vertexColors: true,
+        map: starTexture,
         sizeAttenuation: true,
         transparent: true,
         opacity: 1,
@@ -222,29 +346,25 @@
     updateDebugInfo(starData.length, -scaleFactor/2, scaleFactor/2, -scaleFactor/2, scaleFactor/2, -scaleFactor/2, scaleFactor/2);
 
     // Add debug spheres
-    const debugSpheres = [
-        { position: new THREE.Vector3(scaleFactor/2, scaleFactor/2, scaleFactor/2), color: 0xff0000 },
-        { position: new THREE.Vector3(-scaleFactor/2, -scaleFactor/2, -scaleFactor/2), color: 0x00ff00 },
-        { position: new THREE.Vector3(0, 0, 0), color: 0x0000ff }
-    ];
+    // const debugSpheres = [
+    //     // { position: new THREE.Vector3(scaleFactor/2, scaleFactor/2, scaleFactor/2), color: 0xff0000 },
+    //     // { position: new THREE.Vector3(-scaleFactor/2, -scaleFactor/2, -scaleFactor/2), color: 0x00ff00 },
+    //     { position: new THREE.Vector3(0, 0, 0), color: 0x0000ff }
+    // ];
 
-    debugSpheres.forEach(sphere => {
-        const geometry = new THREE.SphereGeometry(10, 32, 32);
-        const material = new THREE.MeshBasicMaterial({ color: sphere.color });
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.position.copy(sphere.position);
-        scene.add(mesh);
-    });
+    // debugSpheres.forEach(sphere => {
+    //     const geometry = new THREE.SphereGeometry(10, 32, 32);
+    //     const material = new THREE.MeshBasicMaterial({ color: sphere.color });
+    //     const mesh = new THREE.Mesh(geometry, material);
+    //     mesh.position.copy(sphere.position);
+    //     scene.add(mesh);
+    // });
 }
 
         function updateDebugInfo(starCount, minX, maxX, minY, maxY, minZ, maxZ) {
             const debugElement = document.getElementById('debug-info');
             debugElement.innerHTML = `
-                Stars: ${starCount}<br>
-                X: ${minX.toFixed(2)} to ${maxX.toFixed(2)}<br>
-                Y: ${minY.toFixed(2)} to ${maxY.toFixed(2)}<br>
-                Z: ${minZ.toFixed(2)} to ${maxZ.toFixed(2)}<br>
-                Camera Z: ${camera.position.z.toFixed(2)}
+                Planet: ${planetName}
             `;
         }
 
@@ -259,6 +379,8 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            // Clamp the camera position.z to always be within the zoom levels
+            // camera.position.z = Math.max(zoomInLevel, Math.min(zoomOutLevel, camera.position.z));
             controls.update();
             renderer.render(scene, camera);
         }
@@ -284,7 +406,7 @@
             planetName = urlParams.get('name'); // Store the planet name for later use
             console.log("Selected planet name:", planetName);
             // hide the loading screen once the star data has loaded
-            document.getElementById('loading-screen').style.display = 'none';
+            
 
             try {
                 console.log('Fetching star data for RA:', ra, 'DEC:', dec);
@@ -302,6 +424,7 @@
                     showError("No star data found for this location.");
                 } else {
                     init(starData);
+                    document.getElementById('loading-screen').style.display = 'none';
                 }
             } catch (error) {
                 console.error("Error fetching star data:", error);
