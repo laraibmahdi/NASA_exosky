@@ -2,6 +2,7 @@ let scene, camera, renderer, stars, starTrail;
 const starCount = 5000; // Number of stars
 let starTrails = []; // Store previous positions for the trail effect
 const maxTrailLength = 10; // Number of positions in the trail
+let displayExoplanet = false;
 
 
 
@@ -55,45 +56,46 @@ function addStars() {
 
 
 function animate() {
-
-    requestAnimationFrame(animate);
-    // Move stars and update trail
-    stars.geometry.attributes.position.array.forEach((value, index) => {
-        if (index % 3 === 2) {
-            const starIndex = Math.floor(index / 3);
-            const zPos = stars.geometry.attributes.position.array[index];
-            // Add the current position to the trail history
-            const currentPosition = [
-                stars.geometry.attributes.position.array[index - 2], // x
-                stars.geometry.attributes.position.array[index - 1], // y
-                stars.geometry.attributes.position.array[index]      // z
-            ];
-            // Keep only the last 10 positions in the trail
-            if (starTrails[starIndex].length >= maxTrailLength) {
-                starTrails[starIndex].shift();
-            }
-            starTrails[starIndex].push(currentPosition);
-            // Move the stars forward
-            stars.geometry.attributes.position.array[index] += 0.05;
-            // Reset stars position once out of bounds
-            if (stars.geometry.attributes.position.array[index] > 5) {
-                stars.geometry.attributes.position.array[index] = -100;
-                const cameraZ = camera.position.z;
-                const fov = camera.fov * (Math.PI / 180);
-                const aspectRatio = window.innerWidth / window.innerHeight;
-                const visibleHeight = 2 * Math.tan(fov / 2) * cameraZ;
-                const visibleWidth = visibleHeight * aspectRatio;
-                stars.geometry.attributes.position.array[index - 1] = (Math.random() - 0.5) * visibleHeight * 10;
-                stars.geometry.attributes.position.array[index - 2] = (Math.random() - 0.5) * visibleWidth * 10;
-            }
-        }
-    });
-    stars.geometry.attributes.position.needsUpdate = true;
-    if(starTrail){
-        renderStarTrails();
-    }
-    renderer.render(scene, camera);
-
+  if(displayExoplanet){
+    return;
+  }
+  requestAnimationFrame(animate);
+      // Move stars and update trail
+      stars.geometry.attributes.position.array.forEach((value, index) => {
+          if (index % 3 === 2) {
+              const starIndex = Math.floor(index / 3);
+              const zPos = stars.geometry.attributes.position.array[index];
+              // Add the current position to the trail history
+              const currentPosition = [
+                  stars.geometry.attributes.position.array[index - 2], // x
+                  stars.geometry.attributes.position.array[index - 1], // y
+                  stars.geometry.attributes.position.array[index]      // z
+              ];
+              // Keep only the last 10 positions in the trail
+              if (starTrails[starIndex].length >= maxTrailLength) {
+                  starTrails[starIndex].shift();
+              }
+              starTrails[starIndex].push(currentPosition);
+              // Move the stars forward
+              stars.geometry.attributes.position.array[index] += 0.05;
+              // Reset stars position once out of bounds
+              if (stars.geometry.attributes.position.array[index] > 5) {
+                  stars.geometry.attributes.position.array[index] = -100;
+                  const cameraZ = camera.position.z;
+                  const fov = camera.fov * (Math.PI / 180);
+                  const aspectRatio = window.innerWidth / window.innerHeight;
+                  const visibleHeight = 2 * Math.tan(fov / 2) * cameraZ;
+                  const visibleWidth = visibleHeight * aspectRatio;
+                  stars.geometry.attributes.position.array[index - 1] = (Math.random() - 0.5) * visibleHeight * 10;
+                  stars.geometry.attributes.position.array[index - 2] = (Math.random() - 0.5) * visibleWidth * 10;
+              }
+          }
+      });
+      stars.geometry.attributes.position.needsUpdate = true;
+      if(starTrail){
+          renderStarTrails();
+      }
+      renderer.render(scene, camera);
 }
 
 function renderStarTrails() {
@@ -149,63 +151,6 @@ function renderStarTrails() {
     starTrail = new THREE.Points(trailGeometry, trailMaterial);
     scene.add(starTrail);
 
-}
-
-function renderStarTrails() {
-  const trailVertices = [];
-  const velocityFactor = 1; // Adjust this value to control the speed of the trails
-
-  starTrails.forEach((trail, starIndex) => {
-    // Get the current star's position
-    const starPos = stars.geometry.attributes.position.array;
-    const zIndex = starIndex * 3 + 2; // z position index in the stars array
-
-    // Update the star's z position based on velocity
-    starPos[zIndex] += velocityFactor;
-
-    // If the star goes beyond a certain limit, reset its position
-    if (starPos[zIndex] > 5) {
-      starPos[zIndex] = -100;
-      const cameraZ = camera.position.z;
-      const fov = camera.fov * (Math.PI / 180);
-      const aspectRatio = window.innerWidth / window.innerHeight;
-      const visibleHeight = 2 * Math.tan(fov / 2) * cameraZ;
-      const visibleWidth = visibleHeight * aspectRatio;
-
-      starPos[zIndex - 1] = (Math.random() - 0.5) * visibleHeight * 10; // y position
-      starPos[zIndex - 2] = (Math.random() - 0.5) * visibleWidth * 10; // x position
-    }
-
-    // Add the current position to the trail history
-    trail.forEach((pos) => {
-      trailVertices.push(...pos);
-    });
-  });
-
-  const trailPositions = new Float32Array(trailVertices);
-  const trailGeometry = new THREE.BufferGeometry();
-  trailGeometry.setAttribute(
-    "position",
-    new THREE.BufferAttribute(trailPositions, 3)
-  );
-
-  const trailMaterial = new THREE.PointsMaterial({
-    size: 0.1, // Size of each circular trail point
-    sizeAttenuation: true,
-    color: 0xffffff,
-    transparent: true,
-    opacity: 0.5, // Set the opacity of the trails
-    depthWrite: false,
-  });
-
-  // Remove previous trail points if they exist
-  if (starTrail) {
-    scene.remove(starTrail);
-  }
-
-  // Create the points object for the trails
-  starTrail = new THREE.Points(trailGeometry, trailMaterial);
-  scene.add(starTrail);
 }
 
 function onWindowResize() {
@@ -403,7 +348,7 @@ function initPlanet(starData) {
     console.log('init called with', starData.length, 'stars');            
     scene = new THREE.Scene();
     raycaster = new THREE.Raycaster(); // Create a raycaster
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    //renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x000000); // Set clear color to black
@@ -435,7 +380,7 @@ function initPlanet(starData) {
         return;
     }
 
-    //controls = new THREE.OrbitControls(camera, renderer.domElement);
+    // controls = new THREE.OrbitControls(camera, renderer.domElement);
     // controls.enableDamping = true;
     // controls.dampingFactor = 0.05;
 
@@ -443,7 +388,7 @@ function initPlanet(starData) {
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
-        // Initialize the texture loader
+    // Initialize the texture loader
     textureLoader = new THREE.TextureLoader();
 
     // Load a planet texture
@@ -485,16 +430,16 @@ function initPlanet(starData) {
     // const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
     // centerSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     // scene.add(centerSphere);
+
     createPlanet();
     addStars(starData);
-    animate();
-    window.addEventListener('resize', onWindowResize, false);
-    window.addEventListener('mousemove', onMouseMove, false); // Add mouse move listener
-          // Event listeners for resize and click
+    animatePlanet();
+    //window.addEventListener('resize', onWindowResize, false);
+    //window.addEventListener('mousemove', onMouseMove, false); // Add mouse move listener
+    // Event listeners for resize and click
     window.addEventListener('resize', onWindowResize, false);
     window.addEventListener('mousemove', onMouseMove, false);
     window.addEventListener('click', onClick, false);  // Add click listener for planet
-
 }
 
 function onClick(event) {
@@ -563,7 +508,7 @@ function onMouseMove(event) {
     } else {
         document.body.style.cursor = 'default';
         centerSphere.material.emissive = new THREE.Color(0x000000);
-        hidePlanetName();
+        //hidePlanetName();
     }
 }
 
@@ -577,10 +522,10 @@ function showPlanetName() {
     hoverDisplay.style.top = `${event.clientY - hoverDisplay.offsetHeight - 10}px`; // Position above the cursor
 }
 
-function hidePlanetName() {
-    const hoverDisplay = document.getElementById('hoverDisplay');
-    hoverDisplay.style.display = 'none'; // Hide the hover display
-}
+// function hidePlanetName() {
+//     const hoverDisplay = document.getElementById('hoverDisplay');
+//     hoverDisplay.style.display = 'none'; // Hide the hover display
+// }
 
 
 function addStars(starData) {
@@ -659,8 +604,9 @@ function polarToCartesian(ra, dec, radius) {
     return [x, y, z];
 }
 
-function animate() {
-    requestAnimationFrame(animate);
+function animatePlanet() {
+    displayExoplanet = true;
+    requestAnimationFrame(animatePlanet);
     // Clamp the camera position.z to always be within the zoom levels
     // camera.position.z = Math.max(zoomInLevel, Math.min(zoomOutLevel, camera.position.z));
     controls.update();
@@ -706,7 +652,7 @@ async function loadStarData() {
             showError("No star data found for this location.");
         } else {
             initPlanet(starData);
-            document.getElementById('loading-screen').style.display = 'none';
+            //document.getElementById('loading-screen').style.display = 'none';
         }
     } catch (error) {
         console.error("Error fetching star data:", error);
