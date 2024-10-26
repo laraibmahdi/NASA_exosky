@@ -13,7 +13,7 @@ function init() {
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('starMap'), alpha: false });
     renderer.setSize(window.innerWidth, window.innerHeight);
     addStars();
-    animate();
+    // potential check 
     window.addEventListener('resize', onWindowResize, false);
 }
 
@@ -152,7 +152,7 @@ function renderStarTrails() {
     scene.add(starTrail);
 
 }
-
+// potential check
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -166,6 +166,7 @@ function toggleDropdown() {
 }
 
 // Close the dropdown when clicking outside
+// potential check here 
 window.onclick = function (event) {
   const dropdownMenu = document.getElementById("dropdownMenu");
   if (
@@ -393,7 +394,7 @@ function initPlanet(starData) {
     //createPlanet();
     addStars(starData);
     animatePlanet();
-
+    // potential check here (it calls the same onWindowsResize as above)
     window.addEventListener('resize', onWindowResize, false);
     window.addEventListener('mousemove', onMouseMove, false);
     window.addEventListener('click', onClick, false);  // Add click listener for planet
