@@ -210,26 +210,6 @@ async function searchPlanet(planetName) {
       // edit here
       openSkySimulation(planet.ra, planet.dec, planetName);
     }
-
-    // const scriptRunUrl = `https://exosky-eqaacuazcwazejev.canadacentral-01.azurewebsites.net/api/run-script`;
-    // const scriptResponse = await fetch(scriptRunUrl, {
-    //   method: "POST",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //   },
-    //   body: JSON.stringify({
-    //     ra_exo: data[0].ra,
-    //     dec_exo: data[0].dec,
-    //     distance_exo: data[0].sy_dist,
-    //   }),
-    // });
-
-    // if (!scriptResponse.ok) {
-    //   throw new Error(`Failed to run Python script: ${scriptResponse.status}`);
-    // }
-
-    // const scriptOutput = await scriptResponse.text();
-    // console.log("Script output:", scriptOutput);
   } catch (error) {
     console.error("Error fetching data:", error);
     document.getElementById("result").innerHTML =
@@ -313,13 +293,8 @@ async function openSkySimulation(ra, dec, planetName) {
     loadDependencies();
     scene.remove(stars);
     scene.remove(starTrail);
-    // // edit here
-    // const url = `/3d-simulation?ra=${encodeURIComponent(ra)}&dec=${encodeURIComponent(dec)}
-    //     &name=${encodeURIComponent(planetName)}`;
-    // window.location.href = url;
+
     let isZoomedIn = false;
-    // let initialZoom = 500;
-    // let fullZoom = 50;
     const zoomInLevel = 50;
     const zoomOutLevel = 400;
     let textureLoader;
@@ -334,12 +309,9 @@ function loadScript(url) {
         document.head.appendChild(script);
     });
 }
-
-
-// let scene, camera, renderer, stars, 
+ 
 let controls;
-//let planetName; // global var that stores the planet name 
-let centerSphere; // Declare a variable for the center sphere
+let centerSphere; 
 let mouse;
 let raycaster;
 
@@ -380,10 +352,6 @@ function initPlanet(starData) {
         return;
     }
 
-    // controls = new THREE.OrbitControls(camera, renderer.domElement);
-    // controls.enableDamping = true;
-    // controls.dampingFactor = 0.05;
-
     // Add an ambient light
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
@@ -421,22 +389,11 @@ function initPlanet(starData) {
 
     planetTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
     planetTexture.encoding = THREE.sRGBEncoding;
-    // // Add coordinate axes for debugging
-    // const axesHelper = new THREE.AxesHelper(100);
-    // scene.add(axesHelper);
 
-    // // Add a bright sphere at the center for reference
-    // const sphereGeometry = new THREE.SphereGeometry(5, 128, 128);
-    // const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-    // centerSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-    // scene.add(centerSphere);
-
-    createPlanet();
+    //createPlanet();
     addStars(starData);
     animatePlanet();
-    //window.addEventListener('resize', onWindowResize, false);
-    //window.addEventListener('mousemove', onMouseMove, false); // Add mouse move listener
-    // Event listeners for resize and click
+
     window.addEventListener('resize', onWindowResize, false);
     window.addEventListener('mousemove', onMouseMove, false);
     window.addEventListener('click', onClick, false);  // Add click listener for planet
@@ -522,11 +479,6 @@ function showPlanetName() {
     hoverDisplay.style.top = `${event.clientY - hoverDisplay.offsetHeight - 10}px`; // Position above the cursor
 }
 
-// function hidePlanetName() {
-//     const hoverDisplay = document.getElementById('hoverDisplay');
-//     hoverDisplay.style.display = 'none'; // Hide the hover display
-// }
-
 
 function addStars(starData) {
 const starGeometry = new THREE.BufferGeometry();
@@ -589,8 +541,6 @@ scene.add(stars);
 console.log('Added', starData.length, 'stars to the scene');
 console.log('RA range:', minRA, 'to', maxRA);
 console.log('Dec range:', minDec, 'to', maxDec);
-
-//updateDebugInfo(starData.length, -scaleFactor/2, scaleFactor/2, -scaleFactor/2, scaleFactor/2, -scaleFactor/2, scaleFactor/2);
 }
 
 
@@ -607,17 +557,11 @@ function polarToCartesian(ra, dec, radius) {
 function animatePlanet() {
     displayExoplanet = true;
     requestAnimationFrame(animatePlanet);
-    // Clamp the camera position.z to always be within the zoom levels
-    // camera.position.z = Math.max(zoomInLevel, Math.min(zoomOutLevel, camera.position.z));
     controls.update();
     renderer.render(scene, camera);
 }
 
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
+
 
 function showError(message) {
     const errorElement = document.getElementById('error-message');
@@ -627,15 +571,7 @@ function showError(message) {
 
 async function loadStarData() {
     console.log('loadStarData called');
-    const urlParams = new URLSearchParams(window.location.search);
-    //const ra = urlParams.get('ra');
-    //const dec = urlParams.get('dec');
-    // edit here
-    // planetName = urlParams.get('name'); // Store the planet name for later use
     console.log("Selected planet name:", planetName);
-    // hide the loading screen once the star data has loaded
-    
-
     try {
         console.log('Fetching star data for RA:', ra, 'DEC:', dec);
         const response = await fetch(`/api/star-data?ra=${ra}&dec=${dec}`);
@@ -652,20 +588,11 @@ async function loadStarData() {
             showError("No star data found for this location.");
         } else {
             initPlanet(starData);
-            //document.getElementById('loading-screen').style.display = 'none';
         }
     } catch (error) {
         console.error("Error fetching star data:", error);
         showError(`Error loading star data: ${error.message}`);
     }
 }
-
-// function updateDebugInfo(starCount, minX, maxX, minY, maxY, minZ, maxZ) {
-//     const debugElement = document.getElementById('debug-info');
-//     debugElement.innerHTML = `
-//         Planet: ${planetName}
-//     `;
-// }
-// loadStarData();
 console.log('Starting initialization');
 }
