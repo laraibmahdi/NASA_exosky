@@ -1,13 +1,17 @@
 let scene, camera, renderer, stars, starTrail;
-const starCount = 5000; // Number of stars
+const starCount = 10000; // Number of stars
 let starTrails = []; // Store previous positions for the trail effect
 const maxTrailLength = 10; // Number of positions in the trail
 let displayExoplanet = false;
+let loadedCount = 0;
+const initallyLoadPlanets = 20; // lazy loading 20 planets
+let planetsData = [];  // Store all fetched planets
 
 
 
+// initializes the scene and animate the stars
 function init() {
-    scene = new THREE.Scene();
+scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.z = 5;
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('starMap'), alpha: false });
@@ -16,7 +20,7 @@ function init() {
     animate();
     window.addEventListener('resize', onWindowResize, false);
 }
-
+// add the initial stars on the homepage
 function addStars() {
     const starGeometry = new THREE.BufferGeometry();
     const positions = new Float32Array(starCount * 3);
@@ -52,8 +56,6 @@ function addStars() {
     stars = new THREE.Points(starGeometry, starMaterial);
     scene.add(stars);
 }
-
-
 
 function animate() {
   if(displayExoplanet){
@@ -181,6 +183,7 @@ window.onload = async function () {
   init(); // Initialize Three.js
   await fetchAllPlanets(); // Fetch all exoplanets
   document.getElementById("dropdownButton").onclick = toggleDropdown; // Toggle dropdown on button click
+  document.getElementById("dropdownButton").addEventListener("input", filterPlanets);
 
   // Add event listener for search input
   const searchInput = document.getElementById("dropdownButton");
@@ -226,56 +229,55 @@ function selectPlanet(planetName) {
 }
 
 async function fetchAllPlanets() {
-  const apiUrl =
-    "https://exosky-eqaacuazcwazejev.canadacentral-01.azurewebsites.net/api/all-planets";
-  try {
-    const response = await fetch(apiUrl);
-    const data = await response.json();
+    const apiUrl = "https://exosky-eqaacuazcwazejev.canadacentral-01.azurewebsites.net/api/all-planets";
+    try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        planetsData = data;  // Store all planets but don't display them all at once
+        loadNextBatch();     // Load the first batch
+    } catch (error) {
+        console.error("Error fetching planets:", error);
+    }
+}
+
+function loadNextBatch() {
+    const planetOptions = document.getElementById("planetOptions");
+
+    for (let i = loadedCount; i < Math.min(loadedCount + initallyLoadPlanets, planetsData.length); i++) {
+        const option = document.createElement("li");
+        option.className = "p-4 text-white cursor-pointer hover:bg-gray-700";
+        option.textContent = planetsData[i].pl_name;
+        option.onclick = () => selectPlanet(planetsData[i].pl_name);
+        planetOptions.appendChild(option);
+    }
+
+    loadedCount += initallyLoadPlanets;
+}
+
+// Gotta fix this so that more planets appear when the user scrolls down
+document.getElementById("planetOptions").addEventListener("scroll", function () {
+    if (this.scrollTop + this.clientHeight >= this.scrollHeight) {
+        loadNextBatch();  // Load more planets when scrolled to the bottom
+    }
+});
+
+function filterPlanets() {
+    const searchInput = document.getElementById("dropdownButton").value.toLowerCase();
     const planetOptions = document.getElementById("planetOptions");
     planetOptions.innerHTML = "";
 
-    if (data.length === 0) {
-      planetOptions.innerHTML =
-        "<li class='text-gray-500'>No planets found!</li>";
-    } else {
-      data.forEach((planet) => {
+    const filteredPlanets = planetsData.filter(planet => planet.name.toLowerCase().includes(searchInput));
+    
+    filteredPlanets.slice(0, initallyLoadPlanets).forEach(planet => {
         const option = document.createElement("li");
-        option.className = "p-4 text-white cursor-pointer hover:bg-blue-500";
-        option.textContent = planet.pl_name;
-        option.onclick = () => {
-          console.log(`Planet selected: ${planet.pl_name}`); // Log the planet name
-          selectPlanet(planet.pl_name); // Call selectPlanet to handle selection
-        };
+        option.className = "p-4 text-white cursor-pointer hover:bg-gray-700";
+        option.textContent = planet.name;
+        option.onclick = () => selectPlanet(planet.name);
         planetOptions.appendChild(option);
-      });
-    }
-  } catch (error) {
-    console.error("Error fetching planets:", error);
-    const planetOptions = document.getElementById("planetOptions");
-    planetOptions.innerHTML =
-      "<li class='text-gray-500'>Error fetching data!</li>";
-  }
+    });
 }
 
-function filterPlanets() {
-  const filter = document.getElementById("dropdownButton").value.toLowerCase();
-  const planetOptions = document.getElementById("planetOptions");
-
-  // Show or hide the loading message
-  const loadingMessage = document.querySelector(".loading-message");
-  loadingMessage.style.display = filter ? "none" : "block"; // Show loading when searching
-
-  const options = planetOptions.getElementsByTagName("li");
-  for (let i = 0; i < options.length; i++) {
-    const option = options[i];
-    const planetName = option.textContent.toLowerCase();
-    option.style.display = planetName.includes(filter) ? "" : "none";
-  }
-
-  // Hide loading message once done
-  loadingMessage.style.display = "none";
-}
-
+// this function opens the sky, it basically loads the planet and the stars around it
 async function openSkySimulation(ra, dec, planetName) {
 
     async function loadDependencies() {
@@ -290,6 +292,7 @@ async function openSkySimulation(ra, dec, planetName) {
             showError('Failed to load required libraries. Please try refreshing the page.');
         }
     }
+
     loadDependencies();
     scene.remove(stars);
     scene.remove(starTrail);
@@ -594,5 +597,5 @@ async function loadStarData() {
         showError(`Error loading star data: ${error.message}`);
     }
 }
-console.log('Starting initialization');
+//console.log('Starting initialization');
 }
