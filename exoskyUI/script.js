@@ -6,18 +6,19 @@ let displayExoplanet = false;
 let loadedCount = 0;
 const initallyLoadPlanets = 20; // lazy loading 20 planets
 let planetsData = [];  // Store all fetched planets
+let controls;
 
 
 
 // initializes the scene and animate the stars
 function init() {
-scene = new THREE.Scene();
+    scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.z = 5;
-    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('starMap'), alpha: false });
+    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('starMap'), alpha: false});
     renderer.setSize(window.innerWidth, window.innerHeight);
     addStars();
-    // potential check 
+    animate();
     window.addEventListener('resize', onWindowResize, false);
 }
 // add the initial stars on the homepage
@@ -58,9 +59,11 @@ function addStars() {
 }
 
 function animate() {
-  if(displayExoplanet){
-    return;
-  }
+    if(displayExoplanet){
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  } else {
   requestAnimationFrame(animate);
       // Move stars and update trail
       stars.geometry.attributes.position.array.forEach((value, index) => {
@@ -98,6 +101,7 @@ function animate() {
           renderStarTrails();
       }
       renderer.render(scene, camera);
+    }
 }
 
 function renderStarTrails() {
@@ -154,21 +158,21 @@ function renderStarTrails() {
     scene.add(starTrail);
 
 }
-// potential check
+
+// // potential check
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-// Show or hide the dropdown menu
+// // Show or hide the dropdown menu
 function toggleDropdown() {
   const dropdownMenu = document.getElementById("dropdownMenu");
   dropdownMenu.classList.toggle("hidden");
 }
 
 // Close the dropdown when clicking outside
-// potential check here 
 window.onclick = function (event) {
   const dropdownMenu = document.getElementById("dropdownMenu");
   if (
@@ -211,7 +215,9 @@ async function searchPlanet(planetName) {
       document.getElementById("result").innerHTML = "No planet found!";
     } else {
       const planet = data[0];
-      // edit here
+      while(scene.children.length > 0){ 
+        scene.remove(scene.children[0]); 
+      }
       openSkySimulation(planet.ra, planet.dec, planetName);
     }
   } catch (error) {
@@ -255,12 +261,12 @@ function loadNextBatch() {
     loadedCount += initallyLoadPlanets;
 }
 
-// Gotta fix this so that more planets appear when the user scrolls down
-document.getElementById("planetOptions").addEventListener("scroll", function () {
-    if (this.scrollTop + this.clientHeight >= this.scrollHeight) {
-        loadNextBatch();  // Load more planets when scrolled to the bottom
-    }
-});
+//Gotta fix this so that more planets appear when the user scrolls down
+// document.getElementById("planetOptions").addEventListener("scroll", function () {
+//     if (this.scrollTop + this.clientHeight >= this.scrollHeight) {
+//         loadNextBatch();  // Load more planets when scrolled to the bottom
+//     }
+// });
 
 function filterPlanets() {
     const searchInput = document.getElementById("dropdownButton").value.toLowerCase();
@@ -284,9 +290,10 @@ async function openSkySimulation(ra, dec, planetName) {
     async function loadDependencies() {
         console.log('loadDependencies called');
         try {
-            await loadScript('https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js');
+            // I was loading multiple instance of three.js here first time, so I commented it
+            //await loadScript('https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js');
             await loadScript('https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js');
-            console.log('Three.js and OrbitControls loaded successfully');
+            console.log('OrbitControls loaded successfully');
             await loadStarData();
         } catch (error) {
             console.error('Error loading scripts:', error);
@@ -295,8 +302,6 @@ async function openSkySimulation(ra, dec, planetName) {
     }
 
     loadDependencies();
-    scene.remove(stars);
-    scene.remove(starTrail);
 
     let isZoomedIn = false;
     const zoomInLevel = 50;
@@ -314,7 +319,7 @@ function loadScript(url) {
     });
 }
  
-let controls;
+
 let centerSphere; 
 let mouse;
 let raycaster;
@@ -324,17 +329,18 @@ function initPlanet(starData) {
     console.log('init called with', starData.length, 'stars');            
     scene = new THREE.Scene();
     raycaster = new THREE.Raycaster(); // Create a raycaster
-    //renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x000000); // Set clear color to black
-    renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.gammaFactor = 2.2;
+    // renderer = new THREE.WebGLRenderer({ antialias: true });
+    // renderer.setPixelRatio(window.devicePixelRatio);
+    // renderer.setSize(window.innerWidth, window.innerHeight);
+    // renderer.setClearColor(0x000000); // Set clear color to black
+    // renderer.outputEncoding = THREE.sRGBEncoding;
+    // renderer.gammaFactor = 2.2;
 
     document.body.appendChild(renderer.domElement);
 
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
-    camera.position.set(0, 0, zoomOutLevel); // Move camera back further
+    //camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+    //camera.position.set(0, 0, zoomOutLevel); // Move camera back further
+
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
@@ -345,8 +351,8 @@ function initPlanet(starData) {
     controls.maxDistance = zoomOutLevel;
     // camera.position.z = 200;
 
-    camera.position.set(0, 0, zoomOutLevel); 
-    controls.target.set(0, 0, 0); // Set control target to center of scene
+    //camera.position.set(0, 0, zoomOutLevel); 
+    //controls.target.set(0, 0, 0); // Set control target to center of scene
 
 
 
@@ -394,10 +400,11 @@ function initPlanet(starData) {
     planetTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
     planetTexture.encoding = THREE.sRGBEncoding;
 
-    //createPlanet();
+    createPlanet(); // not sure why this is repeating
     addStars(starData);
-    animatePlanet();
-    // potential check here (it calls the same onWindowsResize as above)
+    displayExoplanet = true;
+    //animatePlanet();
+
     window.addEventListener('resize', onWindowResize, false);
     window.addEventListener('mousemove', onMouseMove, false);
     window.addEventListener('click', onClick, false);  // Add click listener for planet
@@ -408,10 +415,10 @@ function onClick(event) {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-    // Cast a ray from the camera to the scene
+    //Cast a ray from the camera to the scene
     raycaster.setFromCamera(mouse, camera);
 
-    // Check if the planet (centerSphere) is clicked
+    //Check if the planet (centerSphere) is clicked
     const intersects = raycaster.intersectObject(centerSphere);
     if (intersects.length > 0) {
         // Toggle zoom state with smooth animation using GSAP
@@ -424,37 +431,16 @@ function onClick(event) {
     }
 }
 
-
-// Create a separate function to create the planet
-function createPlanet() {
-    const sphereGeometry = new THREE.SphereGeometry(15, 512, 512);
-    const sphereMaterial = new THREE.MeshStandardMaterial({ 
-        map: planetTexture,
-        roughness: 0.5,
-        bumpMap: planetTexture,
-        bumpScale: 0.05
-    });
-    centerSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-    scene.add(centerSphere);
-
-    // // Add a point light to illuminate the planet
-    // const pointLight = new THREE.PointLight(0xffffff, 1, 100);
-    // pointLight.position.set(10, 10, 10);
-    // scene.add(pointLight);
-}
-
 function onMouseMove(event) {
     // Calculate mouse position in normalized device coordinates
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-    // Update the raycaster
     raycaster.setFromCamera(mouse, camera);
 
-    // dummy large sphere for intersection
     const interactionRadius = 10; // Increase this value for a larger interaction range
     const largeSphereGeometry = new THREE.SphereGeometry(interactionRadius, 32, 32);
-    const largeSphereMaterial = new THREE.MeshBasicMaterial({ visible: false }); // Make it invisible
+    const largeSphereMaterial = new THREE.MeshBasicMaterial({ visible: false, }); // Make it invisible
     const largeSphere = new THREE.Mesh(largeSphereGeometry, largeSphereMaterial);
 
     // Position the large sphere at the center of the centerSphere
@@ -469,8 +455,26 @@ function onMouseMove(event) {
     } else {
         document.body.style.cursor = 'default';
         centerSphere.material.emissive = new THREE.Color(0x000000);
-        //hidePlanetName();
+        hidePlanetName();
     }
+}
+
+// Create a separate function to create the planet
+function createPlanet() {
+    const sphereGeometry = new THREE.SphereGeometry(15, 512, 512);
+    const sphereMaterial = new THREE.MeshStandardMaterial({ 
+        map: planetTexture,
+        roughness: 0.5,
+        bumpMap: planetTexture,
+        bumpScale: 0.05
+    });
+    centerSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    scene.add(centerSphere);
+
+    // // Add a point light to illuminate the planet
+    const pointLight = new THREE.PointLight(0xffffff, 1, 100);
+    pointLight.position.set(10, 10, 10);
+    scene.add(pointLight);
 }
 
 function showPlanetName() {
@@ -481,6 +485,11 @@ function showPlanetName() {
     // Set position based on mouse event coordinates
     hoverDisplay.style.left = `${event.clientX + 10}px`; // 10px offset to the right
     hoverDisplay.style.top = `${event.clientY - hoverDisplay.offsetHeight - 10}px`; // Position above the cursor
+}
+
+function hidePlanetName() {
+    const hoverDisplay = document.getElementById("hoverDisplay");
+    hoverDisplay.style.display = "none"; // Hide the hover display
 }
 
 
@@ -559,7 +568,6 @@ function polarToCartesian(ra, dec, radius) {
 }
 
 function animatePlanet() {
-    displayExoplanet = true;
     requestAnimationFrame(animatePlanet);
     controls.update();
     renderer.render(scene, camera);

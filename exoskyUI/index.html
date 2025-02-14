@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.10.4/gsap.min.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Exosky!</title>
@@ -48,9 +49,18 @@
                         </div>
                     </div>
                 </div>
-                <div class="loading-message px-4 py-2 text-sm text-gray-500">
-                    Loading more exoplanets...
-                </div>
+                <div
+                id="hoverDisplay"
+                style="
+                position: absolute;
+                top: 50px;
+                left: 10px;
+                color: white;
+                background-color: rgba(0, 0, 0, 0.7);
+                padding: 5px;
+                display: none;
+                "
+            ></div>
             </div>
         <!-- <video id="background-video" class="absolute top-0 left-0 w-full h-full object-cover" autoplay loop muted>
             <source src="./Background.mp4" type="video/mp4" />
