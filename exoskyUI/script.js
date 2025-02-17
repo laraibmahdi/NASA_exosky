@@ -170,14 +170,29 @@ function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 }
 // // Show or hide the dropdown menu
 function toggleDropdown() {
   const dropdownMenu = document.getElementById("dropdownMenu");
   dropdownMenu.classList.toggle("hidden");
 }
+  const dropdownMenu = document.getElementById("dropdownMenu");
+  dropdownMenu.classList.toggle("hidden");
+}
 
 // Close the dropdown when clicking outside
+window.onclick = function (event) {
+  const dropdownMenu = document.getElementById("dropdownMenu");
+  if (
+    !event.target.matches("#dropdownButton") &&
+    !dropdownMenu.contains(event.target)
+  ) {
+    dropdownMenu.classList.add("hidden");
+  }
+};
 window.onclick = function (event) {
   const dropdownMenu = document.getElementById("dropdownMenu");
   if (
@@ -203,7 +218,11 @@ window.onload = async function () {
 async function searchPlanet(planetName) {
   console.log("Searching for planet:", planetName);
   const apiUrl = `https://exosky-eqaacuazcwazejev.canadacentral-01.azurewebsites.net/api/exoplanets?name=${planetName}`;
+  console.log("Searching for planet:", planetName);
+  const apiUrl = `https://exosky-eqaacuazcwazejev.canadacentral-01.azurewebsites.net/api/exoplanets?name=${planetName}`;
 
+  try {
+    const response = await fetch(apiUrl);
   try {
     const response = await fetch(apiUrl);
 
@@ -212,7 +231,14 @@ async function searchPlanet(planetName) {
         `HTTP error! Status: ${response.status} - ${response.statusText}`
       );
     }
+    if (!response.ok) {
+      throw new Error(
+        `HTTP error! Status: ${response.status} - ${response.statusText}`
+      );
+    }
 
+    const data = await response.json();
+    console.log(data);
     const data = await response.json();
     console.log(data);
 
