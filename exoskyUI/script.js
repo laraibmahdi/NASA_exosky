@@ -1,28 +1,35 @@
-let scene, camera, renderer, stars, starTrail;
+import { OrbitControls } from 'https://unpkg.com/three@0.126.1/examples/jsm/controls/OrbitControls.js';
+
 const starCount = 10000; // Number of stars
 let starTrails = []; // Store previous positions for the trail effect
 const maxTrailLength = 10; // Number of positions in the trail
-let displayExoplanet = false;
+//let displayExoplanet = false;
 let loadedCount = 0;
 const initallyLoadPlanets = 20; // lazy loading 20 planets
 let planetsData = [];  // Store all fetched planets
-let controls;
 
 
 
+let scene, camera, renderer, stars, starTrail, controls;
 // initializes the scene and animate the stars
-function init() {
+function initFirstScene() {
     scene = new THREE.Scene();
+    
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.z = 5;
+
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('starMap'), alpha: false});
     renderer.setSize(window.innerWidth, window.innerHeight);
-    addStars();
-    animate();
-    window.addEventListener('resize', onWindowResize, false);
+    document.body.appendChild(renderer.domElement);
+    
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    //addStarsOnHomepage();
+    //window.addEventListener('resize', onWindowResize, false);
 }
+initFirstScene();
 // add the initial stars on the homepage
-function addStars() {
+function addStarsOnHomepage() {
     const starGeometry = new THREE.BufferGeometry();
     const positions = new Float32Array(starCount * 3);
     const sizes = new Float32Array(starCount);
@@ -59,50 +66,52 @@ function addStars() {
 }
 
 function animate() {
-    if(displayExoplanet){
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-  } else {
+    // if(displayExoplanet){
+    // requestAnimationFrame(animate);
+    // controls.update();
+    // renderer.render(scene, camera);
+  //} else {
   requestAnimationFrame(animate);
-      // Move stars and update trail
-      stars.geometry.attributes.position.array.forEach((value, index) => {
-          if (index % 3 === 2) {
-              const starIndex = Math.floor(index / 3);
-              const zPos = stars.geometry.attributes.position.array[index];
-              // Add the current position to the trail history
-              const currentPosition = [
-                  stars.geometry.attributes.position.array[index - 2], // x
-                  stars.geometry.attributes.position.array[index - 1], // y
-                  stars.geometry.attributes.position.array[index]      // z
-              ];
-              // Keep only the last 10 positions in the trail
-              if (starTrails[starIndex].length >= maxTrailLength) {
-                  starTrails[starIndex].shift();
-              }
-              starTrails[starIndex].push(currentPosition);
-              // Move the stars forward
-              stars.geometry.attributes.position.array[index] += 0.05;
-              // Reset stars position once out of bounds
-              if (stars.geometry.attributes.position.array[index] > 5) {
-                  stars.geometry.attributes.position.array[index] = -100;
-                  const cameraZ = camera.position.z;
-                  const fov = camera.fov * (Math.PI / 180);
-                  const aspectRatio = window.innerWidth / window.innerHeight;
-                  const visibleHeight = 2 * Math.tan(fov / 2) * cameraZ;
-                  const visibleWidth = visibleHeight * aspectRatio;
-                  stars.geometry.attributes.position.array[index - 1] = (Math.random() - 0.5) * visibleHeight * 10;
-                  stars.geometry.attributes.position.array[index - 2] = (Math.random() - 0.5) * visibleWidth * 10;
-              }
-          }
-      });
-      stars.geometry.attributes.position.needsUpdate = true;
-      if(starTrail){
-          renderStarTrails();
-      }
-      renderer.render(scene, camera);
-    }
+  controls.update();
+    //   // Move stars and update trail
+    //   stars.geometry.attributes.position.array.forEach((value, index) => {
+    //       if (index % 3 === 2) {
+    //           const starIndex = Math.floor(index / 3);
+    //           const zPos = stars.geometry.attributes.position.array[index];
+    //           // Add the current position to the trail history
+    //           const currentPosition = [
+    //               stars.geometry.attributes.position.array[index - 2], // x
+    //               stars.geometry.attributes.position.array[index - 1], // y
+    //               stars.geometry.attributes.position.array[index]      // z
+    //           ];
+    //           // Keep only the last 10 positions in the trail
+    //           if (starTrails[starIndex].length >= maxTrailLength) {
+    //               starTrails[starIndex].shift();
+    //           }
+    //           starTrails[starIndex].push(currentPosition);
+    //           // Move the stars forward
+    //           stars.geometry.attributes.position.array[index] += 0.05;
+    //           // Reset stars position once out of bounds
+    //           if (stars.geometry.attributes.position.array[index] > 5) {
+    //               stars.geometry.attributes.position.array[index] = -100;
+    //               const cameraZ = camera.position.z;
+    //               const fov = camera.fov * (Math.PI / 180);
+    //               const aspectRatio = window.innerWidth / window.innerHeight;
+    //               const visibleHeight = 2 * Math.tan(fov / 2) * cameraZ;
+    //               const visibleWidth = visibleHeight * aspectRatio;
+    //               stars.geometry.attributes.position.array[index - 1] = (Math.random() - 0.5) * visibleHeight * 10;
+    //               stars.geometry.attributes.position.array[index - 2] = (Math.random() - 0.5) * visibleWidth * 10;
+    //           }
+    //       }
+    //   });
+    //   stars.geometry.attributes.position.needsUpdate = true;
+    //   if(starTrail){
+    //       renderStarTrails();
+    //   }
+    renderer.render(scene, camera);
+    //}
 }
+animate();
 
 function renderStarTrails() {
     const trailVertices = [];
@@ -156,7 +165,6 @@ function renderStarTrails() {
     // Create the points object for the trails
     starTrail = new THREE.Points(trailGeometry, trailMaterial);
     scene.add(starTrail);
-
 }
 
 // // potential check
@@ -185,7 +193,7 @@ window.onclick = function (event) {
 
 // Call the fetchAllPlanets on window load
 window.onload = async function () {
-  init(); // Initialize Three.js
+  //init(); // Initialize Three.js
   await fetchAllPlanets(); // Fetch all exoplanets
   document.getElementById("dropdownButton").onclick = toggleDropdown; // Toggle dropdown on button click
   document.getElementById("dropdownButton").addEventListener("input", filterPlanets);
@@ -215,9 +223,11 @@ async function searchPlanet(planetName) {
       document.getElementById("result").innerHTML = "No planet found!";
     } else {
       const planet = data[0];
-      while(scene.children.length > 0){ 
-        scene.remove(scene.children[0]); 
-      }
+      // setting the scene
+      scene.clear();
+      scene = new THREE.Scene();
+      camera.position.set(0, 0, 400); // Reset camera position
+      controls.target.set(0, 0, 0); // Reset control target
       openSkySimulation(planet.ra, planet.dec, planetName);
     }
   } catch (error) {
@@ -287,22 +297,6 @@ function filterPlanets() {
 // this function opens the sky, it basically loads the planet and the stars around it
 async function openSkySimulation(ra, dec, planetName) {
 
-    async function loadDependencies() {
-        console.log('loadDependencies called');
-        try {
-            // I was loading multiple instance of three.js here first time, so I commented it
-            //await loadScript('https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js');
-            await loadScript('https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js');
-            console.log('OrbitControls loaded successfully');
-            await loadStarData();
-        } catch (error) {
-            console.error('Error loading scripts:', error);
-            showError('Failed to load required libraries. Please try refreshing the page.');
-        }
-    }
-
-    loadDependencies();
-
     let isZoomedIn = false;
     const zoomInLevel = 50;
     const zoomOutLevel = 400;
@@ -318,8 +312,21 @@ function loadScript(url) {
         document.head.appendChild(script);
     });
 }
- 
+    async function loadDependencies() {
+        console.log('loadDependencies called');
+        try {
+            await loadScript('https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js');
+            await loadScript('https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js');
+            await loadStarData();
+        } catch (error) {
+            console.error('Error loading scripts:', error);
+            //showError('Failed to load required libraries. Please try refreshing the page.');
+        }
+    }
 
+
+ 
+let stars;
 let centerSphere; 
 let mouse;
 let raycaster;
@@ -327,21 +334,20 @@ let raycaster;
 function initPlanet(starData) {
     mouse = new THREE.Vector2(); // Create a mouse vector
     console.log('init called with', starData.length, 'stars');            
-    scene = new THREE.Scene();
     raycaster = new THREE.Raycaster(); // Create a raycaster
-    // renderer = new THREE.WebGLRenderer({ antialias: true });
-    // renderer.setPixelRatio(window.devicePixelRatio);
-    // renderer.setSize(window.innerWidth, window.innerHeight);
-    // renderer.setClearColor(0x000000); // Set clear color to black
-    // renderer.outputEncoding = THREE.sRGBEncoding;
-    // renderer.gammaFactor = 2.2;
+    //renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000); // Set clear color to black
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.gammaFactor = 2.2;
 
     document.body.appendChild(renderer.domElement);
 
     //camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
     //camera.position.set(0, 0, zoomOutLevel); // Move camera back further
 
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.enableZoom = true;
@@ -352,13 +358,13 @@ function initPlanet(starData) {
     // camera.position.z = 200;
 
     //camera.position.set(0, 0, zoomOutLevel); 
-    //controls.target.set(0, 0, 0); // Set control target to center of scene
+    controls.target.set(0, 0, 0); // Set control target to center of scene
 
 
 
-    if (typeof THREE.OrbitControls !== 'function') {
-        console.error('THREE.OrbitControls is not a constructor. Type:', typeof THREE.OrbitControls);
-        showError('Failed to initialize controls. Please try refreshing the page.');
+    if (typeof OrbitControls !== 'function') {
+        console.error('THREE.OrbitControls is not a constructor. Type:', typeof OrbitControls);
+        //showError('Failed to initialize controls. Please try refreshing the page.');
         return;
     }
 
@@ -402,8 +408,8 @@ function initPlanet(starData) {
 
     createPlanet(); // not sure why this is repeating
     addStars(starData);
-    displayExoplanet = true;
-    //animatePlanet();
+    //displayExoplanet = true;
+    animatePlanet();
 
     window.addEventListener('resize', onWindowResize, false);
     window.addEventListener('mousemove', onMouseMove, false);
@@ -431,34 +437,6 @@ function onClick(event) {
     }
 }
 
-function onMouseMove(event) {
-    // Calculate mouse position in normalized device coordinates
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    raycaster.setFromCamera(mouse, camera);
-
-    const interactionRadius = 10; // Increase this value for a larger interaction range
-    const largeSphereGeometry = new THREE.SphereGeometry(interactionRadius, 32, 32);
-    const largeSphereMaterial = new THREE.MeshBasicMaterial({ visible: false, }); // Make it invisible
-    const largeSphere = new THREE.Mesh(largeSphereGeometry, largeSphereMaterial);
-
-    // Position the large sphere at the center of the centerSphere
-    largeSphere.position.copy(centerSphere.position);
-
-    // Calculate objects intersecting the picking ray
-    const intersects = raycaster.intersectObjects([largeSphere]);
-    if (intersects.length > 0) {
-        document.body.style.cursor = 'pointer';
-        centerSphere.material.emissive = new THREE.Color(0xaaaaaa);
-        showPlanetName();
-    } else {
-        document.body.style.cursor = 'default';
-        centerSphere.material.emissive = new THREE.Color(0x000000);
-        hidePlanetName();
-    }
-}
-
 // Create a separate function to create the planet
 function createPlanet() {
     const sphereGeometry = new THREE.SphereGeometry(15, 512, 512);
@@ -472,25 +450,55 @@ function createPlanet() {
     scene.add(centerSphere);
 
     // // Add a point light to illuminate the planet
-    const pointLight = new THREE.PointLight(0xffffff, 1, 100);
-    pointLight.position.set(10, 10, 10);
-    scene.add(pointLight);
+    // const pointLight = new THREE.PointLight(0xffffff, 1, 100);
+    // pointLight.position.set(10, 10, 10);
+    // scene.add(pointLight);
 }
 
-function showPlanetName() {
-    const hoverDisplay = document.getElementById('hoverDisplay');
-    hoverDisplay.innerText = `Planet: ${planetName}`; // Use the stored planet name
-    hoverDisplay.style.display = 'block'; // Show the hover display
+function onMouseMove(event) {
+        // Calculate mouse position in normalized device coordinates
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-    // Set position based on mouse event coordinates
-    hoverDisplay.style.left = `${event.clientX + 10}px`; // 10px offset to the right
-    hoverDisplay.style.top = `${event.clientY - hoverDisplay.offsetHeight - 10}px`; // Position above the cursor
+        // Update the raycaster
+        raycaster.setFromCamera(mouse, camera);
+
+        // dummy large sphere for intersection
+        const interactionRadius = 10; // Increase this value for a larger interaction range
+        const largeSphereGeometry = new THREE.SphereGeometry(interactionRadius, 32, 32);
+        const largeSphereMaterial = new THREE.MeshBasicMaterial({ visible: false }); // Make it invisible
+        const largeSphere = new THREE.Mesh(largeSphereGeometry, largeSphereMaterial);
+
+        // Position the large sphere at the center of the centerSphere
+        largeSphere.position.copy(centerSphere.position);
+
+        // Calculate objects intersecting the picking ray
+        const intersects = raycaster.intersectObjects([largeSphere]);
+        if (intersects.length > 0) {
+            document.body.style.cursor = 'pointer';
+            centerSphere.material.emissive = new THREE.Color(0xaaaaaa);
+            //showPlanetName();
+        } else {
+            document.body.style.cursor = 'default';
+            centerSphere.material.emissive = new THREE.Color(0x000000);
+            //hidePlanetName();
+        }
 }
 
-function hidePlanetName() {
-    const hoverDisplay = document.getElementById("hoverDisplay");
-    hoverDisplay.style.display = "none"; // Hide the hover display
-}
+// function showPlanetName() {
+//     const hoverDisplay = document.getElementById('hoverDisplay');
+//     hoverDisplay.innerText = `Planet: ${planetName}`; // Use the stored planet name
+//     hoverDisplay.style.display = 'block'; // Show the hover display
+
+//     // Set position based on mouse event coordinates
+//     hoverDisplay.style.left = `${event.clientX + 10}px`; // 10px offset to the right
+//     hoverDisplay.style.top = `${event.clientY - hoverDisplay.offsetHeight - 10}px`; // Position above the cursor
+// }
+
+// function hidePlanetName() {
+//     const hoverDisplay = document.getElementById("hoverDisplay");
+//     hoverDisplay.style.display = "none"; // Hide the hover display
+// }
 
 
 function addStars(starData) {
@@ -573,13 +581,17 @@ function animatePlanet() {
     renderer.render(scene, camera);
 }
 
-
-
-function showError(message) {
-    const errorElement = document.getElementById('error-message');
-    errorElement.textContent = message;
-    errorElement.style.display = 'block';
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
 }
+
+// function showError(message) {
+//     const errorElement = document.getElementById('error-message');
+//     errorElement.textContent = message;
+//     errorElement.style.display = 'block';
+// }
 
 async function loadStarData() {
     console.log('loadStarData called');
@@ -597,14 +609,15 @@ async function loadStarData() {
             console.log('Sample star data:', starData.slice(0, 5));
         }
         if (starData.length === 0) {
-            showError("No star data found for this location.");
+            //showError("No star data found for this location.");
         } else {
             initPlanet(starData);
         }
     } catch (error) {
         console.error("Error fetching star data:", error);
-        showError(`Error loading star data: ${error.message}`);
+        //showError(`Error loading star data: ${error.message}`);
     }
 }
-//console.log('Starting initialization');
+console.log('Starting initialization');
+loadDependencies();
 }
