@@ -179,9 +179,6 @@ function toggleDropdown() {
   const dropdownMenu = document.getElementById("dropdownMenu");
   dropdownMenu.classList.toggle("hidden");
 }
-  const dropdownMenu = document.getElementById("dropdownMenu");
-  dropdownMenu.classList.toggle("hidden");
-}
 
 // Close the dropdown when clicking outside
 window.onclick = function (event) {
@@ -218,11 +215,6 @@ window.onload = async function () {
 async function searchPlanet(planetName) {
   console.log("Searching for planet:", planetName);
   const apiUrl = `https://exosky-eqaacuazcwazejev.canadacentral-01.azurewebsites.net/api/exoplanets?name=${planetName}`;
-  console.log("Searching for planet:", planetName);
-  const apiUrl = `https://exosky-eqaacuazcwazejev.canadacentral-01.azurewebsites.net/api/exoplanets?name=${planetName}`;
-
-  try {
-    const response = await fetch(apiUrl);
   try {
     const response = await fetch(apiUrl);
 
@@ -237,8 +229,6 @@ async function searchPlanet(planetName) {
       );
     }
 
-    const data = await response.json();
-    console.log(data);
     const data = await response.json();
     console.log(data);
 
