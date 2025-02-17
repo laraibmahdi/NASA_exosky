@@ -1,14 +1,13 @@
+import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
 import { OrbitControls } from 'https://unpkg.com/three@0.126.1/examples/jsm/controls/OrbitControls.js';
 
-const starCount = 10000; // Number of stars
+const starCount = 2500; // Number of stars
 let starTrails = []; // Store previous positions for the trail effect
 const maxTrailLength = 10; // Number of positions in the trail
-//let displayExoplanet = false;
+let displayExoplanet = false;
 let loadedCount = 0;
 const initallyLoadPlanets = 20; // lazy loading 20 planets
 let planetsData = [];  // Store all fetched planets
-
-
 
 let scene, camera, renderer, stars, starTrail, controls;
 // initializes the scene and animate the stars
@@ -19,16 +18,18 @@ function initFirstScene() {
     camera.position.z = 5;
 
     renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('starMap'), alpha: false});
+    //renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
     
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    //addStarsOnHomepage();
-    //window.addEventListener('resize', onWindowResize, false);
+    addStarsOnHomepage();
+    animate();
+    window.addEventListener('resize', onWindowResize, false);
 }
-initFirstScene();
 // add the initial stars on the homepage
+
 function addStarsOnHomepage() {
     const starGeometry = new THREE.BufferGeometry();
     const positions = new Float32Array(starCount * 3);
@@ -66,52 +67,49 @@ function addStarsOnHomepage() {
 }
 
 function animate() {
-    // if(displayExoplanet){
-    // requestAnimationFrame(animate);
-    // controls.update();
-    // renderer.render(scene, camera);
-  //} else {
+    if(displayExoplanet){
+    return;
+  } else {
   requestAnimationFrame(animate);
   controls.update();
-    //   // Move stars and update trail
-    //   stars.geometry.attributes.position.array.forEach((value, index) => {
-    //       if (index % 3 === 2) {
-    //           const starIndex = Math.floor(index / 3);
-    //           const zPos = stars.geometry.attributes.position.array[index];
-    //           // Add the current position to the trail history
-    //           const currentPosition = [
-    //               stars.geometry.attributes.position.array[index - 2], // x
-    //               stars.geometry.attributes.position.array[index - 1], // y
-    //               stars.geometry.attributes.position.array[index]      // z
-    //           ];
-    //           // Keep only the last 10 positions in the trail
-    //           if (starTrails[starIndex].length >= maxTrailLength) {
-    //               starTrails[starIndex].shift();
-    //           }
-    //           starTrails[starIndex].push(currentPosition);
-    //           // Move the stars forward
-    //           stars.geometry.attributes.position.array[index] += 0.05;
-    //           // Reset stars position once out of bounds
-    //           if (stars.geometry.attributes.position.array[index] > 5) {
-    //               stars.geometry.attributes.position.array[index] = -100;
-    //               const cameraZ = camera.position.z;
-    //               const fov = camera.fov * (Math.PI / 180);
-    //               const aspectRatio = window.innerWidth / window.innerHeight;
-    //               const visibleHeight = 2 * Math.tan(fov / 2) * cameraZ;
-    //               const visibleWidth = visibleHeight * aspectRatio;
-    //               stars.geometry.attributes.position.array[index - 1] = (Math.random() - 0.5) * visibleHeight * 10;
-    //               stars.geometry.attributes.position.array[index - 2] = (Math.random() - 0.5) * visibleWidth * 10;
-    //           }
-    //       }
-    //   });
-    //   stars.geometry.attributes.position.needsUpdate = true;
-    //   if(starTrail){
-    //       renderStarTrails();
-    //   }
+      // Move stars and update trail
+      stars.geometry.attributes.position.array.forEach((value, index) => {
+          if (index % 3 === 2) {
+              const starIndex = Math.floor(index / 3);
+              const zPos = stars.geometry.attributes.position.array[index];
+              // Add the current position to the trail history
+              const currentPosition = [
+                  stars.geometry.attributes.position.array[index - 2], // x
+                  stars.geometry.attributes.position.array[index - 1], // y
+                  stars.geometry.attributes.position.array[index]      // z
+              ];
+              // Keep only the last 10 positions in the trail
+              if (starTrails[starIndex].length >= maxTrailLength) {
+                  starTrails[starIndex].shift();
+              }
+              starTrails[starIndex].push(currentPosition);
+              // Move the stars forward
+              stars.geometry.attributes.position.array[index] += 0.05;
+              // Reset stars position once out of bounds
+              if (stars.geometry.attributes.position.array[index] > 5) {
+                  stars.geometry.attributes.position.array[index] = -100;
+                  const cameraZ = camera.position.z;
+                  const fov = camera.fov * (Math.PI / 180);
+                  const aspectRatio = window.innerWidth / window.innerHeight;
+                  const visibleHeight = 2 * Math.tan(fov / 2) * cameraZ;
+                  const visibleWidth = visibleHeight * aspectRatio;
+                  stars.geometry.attributes.position.array[index - 1] = (Math.random() - 0.5) * visibleHeight * 10;
+                  stars.geometry.attributes.position.array[index - 2] = (Math.random() - 0.5) * visibleWidth * 10;
+              }
+          }
+      });
+      stars.geometry.attributes.position.needsUpdate = true;
+      if(starTrail){
+          renderStarTrails();
+      }
     renderer.render(scene, camera);
-    //}
+    }
 }
-animate();
 
 function renderStarTrails() {
     const trailVertices = [];
@@ -173,7 +171,6 @@ function onWindowResize() {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
-
 // // Show or hide the dropdown menu
 function toggleDropdown() {
   const dropdownMenu = document.getElementById("dropdownMenu");
@@ -194,10 +191,10 @@ window.onclick = function (event) {
 // Call the fetchAllPlanets on window load
 window.onload = async function () {
   //init(); // Initialize Three.js
+  initFirstScene();
   await fetchAllPlanets(); // Fetch all exoplanets
   document.getElementById("dropdownButton").onclick = toggleDropdown; // Toggle dropdown on button click
   document.getElementById("dropdownButton").addEventListener("input", filterPlanets);
-
   // Add event listener for search input
   const searchInput = document.getElementById("dropdownButton");
   searchInput.addEventListener("input", filterPlanets);
@@ -224,10 +221,8 @@ async function searchPlanet(planetName) {
     } else {
       const planet = data[0];
       // setting the scene
-      scene.clear();
-      scene = new THREE.Scene();
-      camera.position.set(0, 0, 400); // Reset camera position
-      controls.target.set(0, 0, 0); // Reset control target
+      //document.getElementById("starMap").style.zIndex = "1";
+      document.querySelector("section").style.display = "none";
       openSkySimulation(planet.ra, planet.dec, planetName);
     }
   } catch (error) {
@@ -242,7 +237,7 @@ function selectPlanet(planetName) {
     document.getElementById("dropdownMenu").classList.add("hidden");
     searchPlanet(planetName); // Call the search function with the selected planet
     document.getElementById("dropdownButton").classList.add("hidden");
-    starTrail = true;
+    starTrail = true; // turn on the trails
 }
 
 async function fetchAllPlanets() {
@@ -332,6 +327,16 @@ let mouse;
 let raycaster;
 
 function initPlanet(starData) {
+    scene.clear();
+    scene.remove(starTrail)
+    starTrail.geometry.dispose();
+    starTrail.material.dispose();
+    starTrail = null; // Reset the reference
+    starTrails = [];
+    scene = new THREE.Scene();
+    camera.position.set(0, 0, 400); // Reset camera position
+    controls.target.set(0, 0, 0); // Reset control target
+
     mouse = new THREE.Vector2(); // Create a mouse vector
     console.log('init called with', starData.length, 'stars');            
     raycaster = new THREE.Raycaster(); // Create a raycaster
@@ -408,7 +413,7 @@ function initPlanet(starData) {
 
     createPlanet(); // not sure why this is repeating
     addStars(starData);
-    //displayExoplanet = true;
+    displayExoplanet = true;
     animatePlanet();
 
     window.addEventListener('resize', onWindowResize, false);
@@ -618,6 +623,6 @@ async function loadStarData() {
         //showError(`Error loading star data: ${error.message}`);
     }
 }
-console.log('Starting initialization');
 loadDependencies();
+console.log('Starting initialization');
 }
