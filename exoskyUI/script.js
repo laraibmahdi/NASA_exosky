@@ -620,23 +620,33 @@ async function loadStarData() {
     try {
         console.log('Fetching star data for RA:', ra, 'DEC:', dec);
         const response = await fetch(`/api/star-data?ra=${ra}&dec=${dec}`);
+        
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            // Attempt to get JSON error details, but fall back to plain text
+            let errorText;
+            try {
+                errorText = await response.text(); // Get raw response text
+                console.error("Full error response:", errorText); // Log it for debugging
+                const errorData = JSON.parse(errorText); // Try parsing JSON
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            } catch (jsonError) {
+                throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+            }
         }
+
         const starData = await response.json();
         console.log('Received star data:', starData.length, 'stars');
         if (starData.length > 0) {
             console.log('Sample star data:', starData.slice(0, 5));
         }
         if (starData.length === 0) {
-            //showError("No star data found for this location.");
+            // showError("No star data found for this location.");
         } else {
             initPlanet(starData);
         }
     } catch (error) {
-        console.error("Error fetching star data:", error);
-        //showError(`Error loading star data: ${error.message}`);
+        console.error("Error fetching star data:", error.message, error);
+        // showError(`Error loading star data: ${error.message}`);
     }
 }
 loadDependencies();
