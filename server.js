@@ -18,16 +18,16 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "exoskyUI", "index.html"));
 });
 
-app.post("/api/run-script", async (req, res) => {
-  const { ra_exo, dec_exo } = req.body;
+// app.post("/api/run-script", async (req, res) => {
+//   const { ra_exo, dec_exo } = req.body;
 
-  // Ensure the parameters are provided
-  if (ra_exo === undefined || dec_exo === undefined) {
-    return res
-      .status(400)
-      .send("Missing parameters: ra_exo, dec_exo are required.");
-  }
-});
+//   // Ensure the parameters are provided
+//   if (ra_exo === undefined || dec_exo === undefined) {
+//     return res
+//       .status(400)
+//       .send("Missing parameters: ra_exo, dec_exo are required.");
+//   }
+// });
 
 app.get("/api/exoplanets", async (req, res) => {
   const { name } = req.query;
