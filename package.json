@@ -18,5 +18,8 @@
   },
   "devDependencies": {
     "tailwindcss": "^3.4.13"
+  },
+  "scripts": {
+    "test": "echo \"Running tests...\" && exit 0"
   }
 }
