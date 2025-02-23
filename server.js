@@ -27,48 +27,6 @@ app.post("/api/run-script", async (req, res) => {
       .status(400)
       .send("Missing parameters: ra_exo, dec_exo are required.");
   }
-
-  // Build the command with arguments
-  const command = `python3 script.py ${ra_exo} ${dec_exo}`;
-
-  exec(command, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error executing script: ${error.message}`);
-      return res.status(500).send("Error executing script");
-    }
-    if (stderr) {
-      console.error(`Script stderr: ${stderr}`);
-      return res.status(500).send("Error in script execution");
-    }
-    console.log(`Script output: ${stdout}`);
-    res.send("Script executed successfully");
-  });
-});
-app.post("/api/run-script", async (req, res) => {
-  const { ra_exo, dec_exo } = req.body;
-
-  // Ensure the parameters are provided
-  if (ra_exo === undefined || dec_exo === undefined) {
-    return res
-      .status(400)
-      .send("Missing parameters: ra_exo, dec_exo are required.");
-  }
-
-  // Build the command with arguments
-  const command = `python script.py ${ra_exo} ${dec_exo}`;
-
-  exec(command, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error executing script: ${error.message}`);
-      return res.status(500).send("Error executing script");
-    }
-    if (stderr) {
-      console.error(`Script stderr: ${stderr}`);
-      return res.status(500).send("Error in script execution");
-    }
-    console.log(`Script output: ${stdout}`);
-    res.send("Script executed successfully");
-  });
 });
 
 app.get("/api/exoplanets", async (req, res) => {
