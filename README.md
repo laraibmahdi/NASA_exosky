@@ -2,7 +2,7 @@
 How to run: 
 `npm start`
 Access `https://localhost:3000`
-OR visit https://eseproject.netlify.app/
+OR visit https://exosky-eqaacuazcwazejev.canadacentral-01.azurewebsites.net/
 ## Exosky! Challenge Outline
 ### High-Level Summary
 The Exoplanet Stellar Explorer (ESE) is an interactive web application that allows users to visualize the stellar environments of any chosen exoplanet. Users can select an exoplanet from the NASA Exoplanet Archive and enjoy a 3d representation of the stellar environment around the exoplanet. This project is important because it provides an engaging and accessible way for people of all ages to explore complex astronomical data and concepts, potentially inspiring youth to pursue their interests in astronomy. With further work, it could also serve as an educational tool, providing a fun way of interacting with exoplanetary data.
