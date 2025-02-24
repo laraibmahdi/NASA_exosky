@@ -101,8 +101,8 @@ app.get("/api/all-planets", async (req, res) => {
   }
 });
 
-app.get("/3d-simulation", (req, res) => {
-  const filePath = path.join(__dirname, "exoskyUI", "3d-simulation.html");
+app.get("index", (req, res) => {
+  const filePath = path.join(__dirname, "exoskyUI", "index.html");
   res.sendFile(filePath, (err) => {
     if (err) {
       console.error("Error sending file:", err);
