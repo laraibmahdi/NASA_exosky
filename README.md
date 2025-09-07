@@ -7,7 +7,7 @@ OR visit https://exosky-eqaacuazcwazejev.canadacentral-01.azurewebsites.net/
 ### High-Level Summary
 The Exoplanet Stellar Explorer (ESE) is an interactive web application that allows users to visualize the stellar environments of any chosen exoplanet. Users can select an exoplanet from the NASA Exoplanet Archive and enjoy a 3d representation of the stellar environment around the exoplanet. This project is important because it provides an engaging and accessible way for people of all ages to explore complex astronomical data and concepts, potentially inspiring youth to pursue their interests in astronomy. With further work, it could also serve as an educational tool, providing a fun way of interacting with exoplanetary data.
 ### Project Demo
-https://github.com/laraibmahdi/NASA_exosky
+https://github.com/shivbhagat/NASA_exosky
 ### Final Project
 https://docs.google.com/presentation/d/1-_XWtHnFXpZIL8m-trJbcVGVhcV5q-eQbLWmjau5ZUU/edit?usp=sharing
 ### Project Details
